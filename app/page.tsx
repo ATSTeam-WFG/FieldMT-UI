@@ -69,7 +69,7 @@ export default function SplashPage() {
             {/* Stays visible on mobile, unlike the other nav links — testers
                 arriving on a phone need a way in. */}
             <Link href="/login" className="nav-signin">Log in</Link>
-            <a href="#request" className="nav-cta" onClick={(e) => { e.preventDefault(); setModalOpen(true) }}>Request early access</a>
+            <a href="#request" className="nav-cta" onClick={(e) => { e.preventDefault(); setModalOpen(true) }}>Get access</a>
           </div>
         </div>
       </nav>
