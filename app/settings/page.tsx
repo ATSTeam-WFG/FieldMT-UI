@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import { AppShell } from '@/components/app/AppShell'
 import { useRole } from '@/lib/context/RoleContext'
 import { useTheme } from '@/lib/context/ThemeContext'
@@ -89,6 +90,7 @@ function ToggleRow({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { data: agency } = useMyAgency()
   const { persona, role } = useRole()
   const { theme, toggleTheme, setTheme } = useTheme()
   const { settings, isLoading, update } = useSettings()
@@ -176,7 +178,7 @@ export default function SettingsPage() {
             {/* Profile fields */}
             {[
               { label: 'Role', value: roleLabel },
-              { label: 'Company', value: 'Premier Title Agency' },
+              { label: 'Company', value: agency?.name ?? '—' },
               ...(persona.territory ? [{ label: 'Territory', value: persona.territory }] : []),
             ].map(({ label, value }) => (
               <div

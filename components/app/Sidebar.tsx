@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard,
@@ -63,6 +64,7 @@ interface SidebarProps {
 export function Sidebar({ activeItem }: SidebarProps) {
   const pathname = usePathname()
   const { persona, role } = useRole()
+  const { data: agency } = useMyAgency()
 
   const isManager = role === 'manager'
   const mainNav = isManager ? managerMainNav : repMainNav
@@ -168,7 +170,7 @@ export function Sidebar({ activeItem }: SidebarProps) {
               className="truncate"
               style={{ fontSize: 11, color: 'var(--muted)' }}
             >
-              Premier Title Agency
+              {agency?.name ?? 'Your agency'}
             </span>
           </div>
 
