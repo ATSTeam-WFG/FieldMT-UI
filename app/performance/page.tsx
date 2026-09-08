@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import { TrendingUp } from 'lucide-react'
 import { AICard } from '@/components/app/AICard'
 import { AppShell } from '@/components/app/AppShell'
@@ -276,6 +277,7 @@ function AgentEfficiencySection({ agents }: { agents: AgentEfficiencyEntry[] }) 
 // ── Manager view ──────────────────────────────────────────────────────────────
 
 function ManagerPerformancePage() {
+  const { data: agency } = useMyAgency()
   const [period, setPeriod] = useState<Period>('mtd')
   const { data, isLoading } = useManagerPerformance(period)
 
@@ -293,7 +295,7 @@ function ManagerPerformancePage() {
               Team Performance
             </h1>
             <p style={{ fontSize: 14, color: 'var(--muted)' }}>
-              Premier Title Agency · {PERIOD_LABEL[period]}
+              {agency?.name ?? 'Your agency'} · {PERIOD_LABEL[period]}
             </p>
           </div>
           <PeriodToggle period={period} onChange={setPeriod} />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import { AnimatePresence } from 'framer-motion'
 import {
   FileText, Users, TrendingUp, BarChart2,
@@ -145,6 +146,7 @@ function TableFooter({ page, total, onPage }: {
 // ── Page ─────────────────────────────────────────────────────────────────────────
 
 function ImportsExportsPage() {
+  const { data: agency } = useMyAgency()
   const { role, persona } = useRole()
   const isManager = role === 'manager'
 
@@ -375,7 +377,7 @@ function ImportsExportsPage() {
           <ImportPanel
             platform={openPlatform}
             owner={isManager ? 'agency' : 'you'}
-            agencyName="Premier Title Agency"
+            agencyName={agency?.name ?? 'Your agency'}
             onClose={() => setOpenPlatform(null)}
             onCommitted={(item) => { addImport(item); setImportPage(1) }}
           />

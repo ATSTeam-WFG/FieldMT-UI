@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { LogoAnimation } from '@/components/app/LogoAnimation'
 import { EarlyAccessModal } from '@/components/app/EarlyAccessModal'
 import { BRAND } from '@/lib/brand'
@@ -65,7 +66,10 @@ export default function SplashPage() {
           <div className="nav-links">
             <a href="#story">Story</a>
             <a href="#product">Product</a>
-            <a href="#request" className="nav-cta" onClick={(e) => { e.preventDefault(); setModalOpen(true) }}>Request early access</a>
+            {/* Stays visible on mobile, unlike the other nav links — testers
+                arriving on a phone need a way in. */}
+            <Link href="/login" className="nav-signin">Log in</Link>
+            <a href="#request" className="nav-cta" onClick={(e) => { e.preventDefault(); setModalOpen(true) }}>Get access</a>
           </div>
         </div>
       </nav>
@@ -584,6 +588,21 @@ export default function SplashPage() {
         </div>
       </section>
       
+      {/* Deliberately low-key: it sits directly above the primary CTA, so it
+          must not compete with it. Quiet band, secondary button. */}
+      <section className="signin-band">
+        <div className="container signin-inner">
+          <div className="signin-copy">
+            <h3>Already testing with us?</h3>
+            <p>Alpha testers and agencies already onboarded, head straight in.</p>
+          </div>
+          <div className="signin-actions">
+            <Link href="/login" className="btn btn-secondary">Sign in</Link>
+            <Link href="/signup" className="signin-alt">Have a code? Create your account →</Link>
+          </div>
+        </div>
+      </section>
+
       {/**/}
       <section className="closing" id="request">
         <div className="container closing-inner">
