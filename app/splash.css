@@ -66,6 +66,12 @@ html { scroll-behavior: smooth; }
     transition: color var(--transition);
   }
   .nav-links a:hover { color: var(--foreground); }
+  .nav-links a.nav-signin {
+    color: var(--foreground);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .nav-links a.nav-signin:hover { color: var(--gold); }
   .nav-links a.nav-cta {
     background: var(--gold);
     color: #000;
@@ -84,13 +90,17 @@ html { scroll-behavior: smooth; }
   }
   @media (max-width: 768px) {
     .nav-inner { padding: 14px 16px; gap: 12px; }
-    .nav-links a:not(.nav-cta) { display: none; }
+    /* Log in stays; the section anchors do not. A tester on a phone needs
+       the way in more than they need "Story". */
+    .nav-links a:not(.nav-cta):not(.nav-signin) { display: none; }
     .nav-logo .badge { display: none; }
     .nav-logo img { width: 132px !important; }
     .nav-links a.nav-cta {
       padding: 8px 14px;
       font-size: 13px;
     }
+    .nav-links { gap: 16px; }
+    .nav-links a.nav-signin { font-size: 13px; }
   }
 
   /* ========== BUTTONS ========== */
@@ -1466,6 +1476,45 @@ html { scroll-behavior: smooth; }
   }
 
   /* ========== CLOSING / FINAL CTA ========== */
+  /* ========== SIGN-IN BAND ========== */
+  .signin-band {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 32px 0;
+  }
+  .signin-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .signin-copy h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0 0 4px;
+  }
+  .signin-copy p {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+  }
+  .signin-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .signin-alt {
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--transition);
+  }
+  .signin-alt:hover { color: var(--gold); }
+
   .closing {
     padding: 140px 0;
     text-align: center;
@@ -1865,6 +1914,12 @@ html { scroll-behavior: smooth; }
     .wfg-label { font-size: 10px; }
 
     /* Closing CTA */
+    /* Stack the sign-in band; side-by-side is too tight under ~600px. */
+    .signin-band { padding: 28px 0; }
+    .signin-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .signin-actions { width: 100%; gap: 14px; }
+    .signin-actions .btn { flex: 1; text-align: center; }
+
     .closing { padding: 80px 0; }
     .closing h2 {
       font-size: 30px;
