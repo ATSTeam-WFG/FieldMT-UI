@@ -104,7 +104,7 @@ The app ships with a built-in demo experience for investor and sales presentatio
 - **Auto-login** — no credentials required; navigating to `/` loads the dashboard immediately
 - **Role switcher** — toggle between Agent (Sarah Chen) and Manager (Jane Doe) at any time
 - **All form submissions succeed** — log activity, add contact, add contract — all show a success toast without hitting the backend
-- **Demo credentials** — if prompted: `demo@fieldiq.ai` / `demo1234`
+- **Demo credentials** — if prompted: `demo@example.com` / `demo1234`
 
 ---
 
