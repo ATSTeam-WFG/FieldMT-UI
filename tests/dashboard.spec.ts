@@ -28,6 +28,10 @@ test('page heading and action buttons are visible', async ({ page }) => {
 })
 
 test('6 KPI cards are rendered', async ({ page }) => {
+  // The KPI grid is held back while the onboarding checklist is outstanding.
+  const onboarding = await page.getByText(/get you started/i).first().isVisible().catch(() => false)
+  test.skip(onboarding, 'onboarding checklist is still open for this account')
+
   const kpiLabels = [
     'ACTIVITIES THIS WEEK',
     'TOTAL SPEND MTD',
@@ -42,21 +46,22 @@ test('6 KPI cards are rendered', async ({ page }) => {
 })
 
 test('AI nudge card is visible', async ({ page }) => {
-  // New users see WelcomeBanner instead of nudge; both are acceptable
+  // The onboarding checklist suppresses the nudge until setup is done; both are acceptable
   const hasNudge = await page.getByText('Daily Nudge').first().isVisible().catch(() => false)
   const hasBanner = await page.getByText(/get you started/i).first().isVisible().catch(() => false)
   expect(hasNudge || hasBanner).toBe(true)
 })
 
 test('AI summary card is visible', async ({ page }) => {
-  // New users see WelcomeBanner instead of summary card; both are acceptable
+  // The onboarding checklist suppresses the summary until setup is done; both are acceptable
   const hasSummary = await page.getByText('Summary').first().isVisible().catch(() => false)
   const hasBanner = await page.getByText(/get you started/i).first().isVisible().catch(() => false)
   expect(hasSummary || hasBanner).toBe(true)
 })
 
 test('Recent Activity section has rows', async ({ page }) => {
-  // First-time users see WelcomeBanner instead of Recent Activity
+  // Recent Activity always renders now — the fallback covers a page that has
+  // not finished loading, not a first-run layout.
   const hasRecent = await page.getByText('Recent Activity').isVisible().catch(() => false)
   if (hasRecent) {
     const rows = page.locator('.app-card').filter({ hasText: 'Recent Activity' })

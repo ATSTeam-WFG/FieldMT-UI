@@ -26,6 +26,7 @@ export function useCreateContact() {
     mutationFn: createContact,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['contacts'] })
+      qc.invalidateQueries({ queryKey: ['onboarding-checklist'] })
     },
   })
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -147,6 +148,7 @@ function TableFooter({ page, total, onPage }: {
 
 function ImportsExportsPage() {
   const { data: agency } = useMyAgency()
+  const searchParams = useSearchParams()
   const { role, persona } = useRole()
   const isManager = role === 'manager'
 
@@ -157,6 +159,16 @@ function ImportsExportsPage() {
   const [openPlatform, setOpenPlatform] = useState<PlatformCard | null>(null)
   const [exportPage, setExportPage] = useState(1)
   const [importPage, setImportPage] = useState(1)
+
+  // ?import=<platform> opens that importer straight away — the onboarding
+  // checklist links here, and this is a two-section page. Ignored for a platform
+  // that isn't live yet, so ?import=softpro stays inert.
+  const importParam = searchParams.get('import')
+  useEffect(() => {
+    if (!importParam) return
+    const target = PLATFORMS.find(p => p.platform === importParam && p.status === 'active')
+    if (target) setOpenPlatform(target)
+  }, [importParam])
 
   // Team agents for manager export filters (name used as ID proxy)
   const { data: teamData } = useManagerPerformance('ytd')

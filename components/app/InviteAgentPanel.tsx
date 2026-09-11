@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { X, UserPlus, User, ShieldCheck } from 'lucide-react'
 import { useInviteAgent } from '@/lib/context/InviteAgentContext'
 import { useSuccessToast } from '@/components/app/SuccessToast'
@@ -59,6 +60,7 @@ const inputStyle: React.CSSProperties = {
 
 export function InviteAgentPanel() {
   const { closeInviteAgent } = useInviteAgent()
+  const queryClient = useQueryClient()
   const showToast = useSuccessToast()
   const { theme } = useTheme()
 
@@ -91,6 +93,10 @@ export function InviteAgentPanel() {
         rep_tier: REP_TIER_MAP[role] ?? 'sales_rep',
         welcome_note: welcomeNote || null,
       }])
+      // This panel bypasses the mutation hooks, so nothing was being invalidated
+      // — the roster and the manager's invite_rep step both stayed stale.
+      queryClient.invalidateQueries({ queryKey: ['my-team'] })
+      queryClient.invalidateQueries({ queryKey: ['onboarding-checklist'] })
       showToast('Invitation sent successfully')
       closeInviteAgent()
       resetForm()

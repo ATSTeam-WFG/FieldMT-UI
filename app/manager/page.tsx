@@ -3,17 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { TriangleAlert, ChevronRight, Users, BarChart2, UserPlus } from 'lucide-react'
+import { TriangleAlert, ChevronRight, Users, BarChart2 } from 'lucide-react'
 import { AICard } from '@/components/app/AICard'
 import { AppShell } from '@/components/app/AppShell'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { WelcomeBanner } from '@/components/app/WelcomeBanner'
+import { OnboardingChecklist } from '@/components/app/OnboardingChecklist'
 import { SkeletonRows } from '@/components/app/SkeletonRows'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ActivityStatus } from '@/components/app/StatusBadge'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { useManagerDashboard } from '@/lib/hooks/useManagerDashboard'
 import { useInviteAgent } from '@/lib/context/InviteAgentContext'
+import { useOnboarding } from '@/lib/hooks/useOnboarding'
 import type { Period } from '@/lib/api/analytics'
 
 const PERIOD_LABELS: Record<Period, string> = { mtd: 'MTD', qtd: 'QTD', ytd: 'YTD' }
@@ -44,6 +45,9 @@ export default function ManagerPage() {
   const { openInviteAgent } = useInviteAgent()
 
   const { data, isLoading } = useManagerDashboard(period)
+  // Ground rule: while any setup step is outstanding the checklist is the only
+  // thing on the dashboard. The KPI and AI cards arrive together once it clears.
+  const { holdDashboard } = useOnboarding()
 
   const kpis = data?.kpis ?? {
     totalActivities: 0,
@@ -59,8 +63,6 @@ export default function ManagerPage() {
   const leaderboard = data?.leaderboard ?? []
   const alerts = data?.alerts ?? []
   const agentActivity = data?.agentActivity ?? []
-
-  const isManagerFirstTime = data !== undefined && kpis.totalAgents === 0
 
   const maxCount = breakdown.reduce((m, i) => Math.max(m, i.count), 0)
   const totalActivities = breakdown.reduce((s, i) => s + i.count, 0)
@@ -115,33 +117,12 @@ export default function ManagerPage() {
           </div>
         </div>
 
-        {/* ── Welcome banner — first-time manager ─────────── */}
-        {isManagerFirstTime && (
-          <WelcomeBanner
-            headline="Welcome! Let's build your team."
-            subtext="Your dashboard will populate as reps log activities. Start by inviting your first rep."
-            tiles={[
-              {
-                icon: UserPlus,
-                title: 'Invite your first rep',
-                description: 'Send an email invite to bring a rep onto your team.',
-                buttonLabel: 'Invite Rep',
-                onClick: openInviteAgent,
-              },
-              {
-                icon: Users,
-                title: 'Share your agency code',
-                description: 'Reps can join your agency using the code on your Team page.',
-                buttonLabel: 'View Team',
-                href: '/team',
-              },
-            ]}
-          />
-        )}
+        {/* ── Onboarding checklist — until every setup step is done ── */}
+        <OnboardingChecklist />
 
         {/* ── AI Team Narrative ───────────────────────────── */}
         <AnimatePresence>
-          {!narrativeDismissed && !isManagerFirstTime && (
+          {!narrativeDismissed && !holdDashboard && (
             <motion.div
               key="narrative"
               initial={{ opacity: 0, y: -8 }}
@@ -162,15 +143,15 @@ export default function ManagerPage() {
           )}
         </AnimatePresence>
 
-        {/* ── KPI cards ───────────────────────────────────── */}
-        {isLoading && (
+        {/* ── KPI cards — held back until onboarding is complete ── */}
+        {!holdDashboard && isLoading && (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-24 w-full rounded-lg" />
             ))}
           </div>
         )}
-        {!isLoading && <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {!holdDashboard && !isLoading && <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {/* Total Team Activities */}
           <div
             className="flex flex-col rounded-[8px]"

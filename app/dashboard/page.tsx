@@ -14,15 +14,13 @@ import {
   Star,
   Circle,
   ClipboardList,
-  Users,
-  FileText,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AppShell } from '@/components/app/AppShell'
 import { KPICard } from '@/components/app/KPICard'
 import { AICard } from '@/components/app/AICard'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { WelcomeBanner } from '@/components/app/WelcomeBanner'
+import { OnboardingChecklist } from '@/components/app/OnboardingChecklist'
 import { SkeletonRows } from '@/components/app/SkeletonRows'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ActivityStatus } from '@/components/app/StatusBadge'
@@ -33,6 +31,7 @@ import { useAgentKpis } from '@/lib/hooks/useAgentKpis'
 import { useAgentNudge } from '@/lib/hooks/useAgentNudge'
 import { useActivities } from '@/lib/hooks/useActivities'
 import { useContracts } from '@/lib/hooks/useContracts'
+import { useOnboarding } from '@/lib/hooks/useOnboarding'
 
 function formatPipelineValue(n: number): string {
   if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M'
@@ -62,10 +61,12 @@ export default function DashboardPage() {
   const { data: nudge } = useAgentNudge()
   const { data: activitiesData, isLoading: activitiesLoading } = useActivities({ page_size: 5 })
   const { data: contractsData, isLoading: contractsLoading } = useContracts()
+  // Ground rule: while any setup step is outstanding the checklist is the only
+  // thing on the dashboard. The KPI and AI cards arrive together once it clears.
+  const { holdDashboard } = useOnboarding()
 
   const isLoading = kpisLoading || activitiesLoading || contractsLoading
   const recentActivities = activitiesData?.items ?? []
-  const isRepFirstTime = activitiesData !== undefined && recentActivities.length === 0
 
   const now = new Date()
   const closedThisMonth = (contractsData?.items ?? []).filter(c => {
@@ -133,42 +134,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Welcome banner — first-time rep ──────────── */}
-        {isRepFirstTime && (
-          <div style={{ marginTop: 16 }}>
-            <WelcomeBanner
-              headline={`Welcome, ${firstName}! Let's get you started.`}
-              subtext="Your dashboard will come alive as you log activities and track deals. Start with any of these steps."
-              tiles={[
-                {
-                  icon: ClipboardList,
-                  title: 'Log your first activity',
-                  description: 'Record a client visit, lunch, pop-by, or call.',
-                  buttonLabel: 'Log Activity',
-                  onClick: openLog,
-                },
-                {
-                  icon: Users,
-                  title: 'Add a contact',
-                  description: 'Build your book by adding agents, brokers, or lenders.',
-                  buttonLabel: 'Go to Contacts',
-                  href: '/contacts',
-                },
-                {
-                  icon: FileText,
-                  title: 'Open a contract',
-                  description: 'Track a deal from initiated to closed.',
-                  buttonLabel: 'Add Contract',
-                  onClick: openContract,
-                },
-              ]}
-            />
-          </div>
-        )}
+        {/* ── Onboarding checklist — until every setup step is done ── */}
+        <OnboardingChecklist style={{ marginTop: 16 }} />
 
         {/* ── AI Priority Nudge ─────────────────────────── */}
         <AnimatePresence>
-          {!nudgeDismissed && !isRepFirstTime && nudge && (
+          {!nudgeDismissed && !holdDashboard && nudge && (
             <motion.div
               key="nudge"
               initial={{ opacity: 0, y: -8 }}
@@ -192,8 +163,8 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
 
-        {/* ── KPI cards ─────────────────────────────────── */}
-        {isLoading ? (
+        {/* ── KPI cards — held back until onboarding is complete ── */}
+        {holdDashboard ? null : isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4" style={{ marginTop: 20 }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-24 w-full rounded-lg" />
@@ -226,7 +197,7 @@ export default function DashboardPage() {
         )}
 
         {/* ── AI Performance Summary ────────────────────── */}
-        {!isRepFirstTime && (
+        {!holdDashboard && (
           <div style={{ marginTop: 16 }}>
             <AICard label="Summary" sublabel="Updated today" readAloud>
               <p style={{ fontSize: 13, color: 'var(--body)', lineHeight: 1.6, margin: 0 }}>
@@ -458,7 +429,7 @@ export default function DashboardPage() {
 
             {/* Stats */}
             <div className="flex flex-col" style={{ padding: '12px 20px' }}>
-              {isRepFirstTime && (
+              {holdDashboard && (
                 <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, marginBottom: 8, lineHeight: 1.5 }}>
                   Log activities to build your weekly streak and track consistency.
                 </p>

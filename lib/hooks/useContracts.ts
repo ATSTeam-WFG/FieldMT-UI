@@ -18,6 +18,7 @@ export function useCreateContract() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['contracts'] })
       qc.invalidateQueries({ queryKey: ['agent-kpis'] })
+      qc.invalidateQueries({ queryKey: ['onboarding-checklist'] })
     },
   })
 }

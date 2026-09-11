@@ -1,12 +1,12 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { getNotifications, markAllRead as apiMarkAllRead, markRead as apiMarkRead } from '@/lib/api/notifications'
 import { hasToken } from '@/lib/api/client'
 
 export interface Notification {
   id: string
-  type: 'activity' | 'follow-up' | 'alert' | 'broadcast'
+  type: 'activity' | 'follow-up' | 'alert' | 'broadcast' | 'onboarding'
   message: string
   timestamp: string
   read: boolean
@@ -25,6 +25,8 @@ interface NotificationContextValue {
   markRead: (id: string) => void
   markAllRead: () => void
   addNotification: (n: Omit<Notification, 'id' | 'read' | 'entity_type' | 'entity_id'>) => void
+  /** Re-read from the server. Needed when something we just did wrote an alert. */
+  refresh: () => void
 }
 
 const NotificationContext = createContext<NotificationContextValue>({
@@ -36,12 +38,14 @@ const NotificationContext = createContext<NotificationContextValue>({
   markRead: () => {},
   markAllRead: () => {},
   addNotification: () => {},
+  refresh: () => {},
 })
 
 function toFrontendType(t: string): Notification['type'] {
   if (t === 'activity') return 'activity'
   if (t === 'overdue_followup') return 'follow-up'
   if (t === 'broadcast') return 'broadcast'
+  if (t === 'onboarding_complete') return 'onboarding'
   return 'alert'
 }
 
@@ -49,7 +53,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS)
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     if (!hasToken()) return
     getNotifications()
       .then(({ items }) => {
@@ -65,6 +69,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => { refresh() }, [refresh])
 
   const unreadCount = notifications.filter(n => !n.read).length
 
@@ -98,6 +104,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         markRead,
         markAllRead,
         addNotification,
+        refresh,
       }}
     >
       {children}
