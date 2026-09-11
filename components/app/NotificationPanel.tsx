@@ -1,6 +1,6 @@
 'use client'
 
-import { TrendingDown, Clock, CalendarClock, Zap, Megaphone, X } from 'lucide-react'
+import { TrendingDown, Clock, CalendarClock, Zap, Megaphone, Rocket, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '@/lib/context/NotificationContext'
 import type { Notification } from '@/lib/context/NotificationContext'
@@ -45,6 +45,9 @@ function NotifIcon({ type, entity_type }: { type: Notification['type']; entity_t
     Icon = Zap; color = '#c4a574'
   } else if (type === 'broadcast') {
     Icon = Megaphone; color = '#c4a574'
+  } else if (type === 'onboarding') {
+    // Matches the "Getting started" sidebar entry this one signs off on.
+    Icon = Rocket; color = '#c4a574'
   }
 
   return (

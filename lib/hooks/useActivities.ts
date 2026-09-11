@@ -18,6 +18,9 @@ export function useCreateActivity() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['activities'] })
       qc.invalidateQueries({ queryKey: ['agent-kpis'] })
+      // Flips both log_activity and set_follow_up — a follow-up is created as a
+      // side effect of logging, there is no standalone create.
+      qc.invalidateQueries({ queryKey: ['onboarding-checklist'] })
     },
   })
 }

@@ -1292,7 +1292,7 @@ html { scroll-behavior: smooth; }
     .compare-table .row-label { font-size: 10px; }
   }
 
-  /* ========== DAY IN FIELDIQ (split narrative) ========== */
+  /* ========== DAY IN FIELDMT (split narrative) ========== */
   .day-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

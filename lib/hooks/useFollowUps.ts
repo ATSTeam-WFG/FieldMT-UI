@@ -19,6 +19,7 @@ export function useUpdateFollowUp() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['follow-ups'] })
       qc.invalidateQueries({ queryKey: ['agent-kpis'] })
+      qc.invalidateQueries({ queryKey: ['onboarding-checklist'] })
     },
   })
 }
