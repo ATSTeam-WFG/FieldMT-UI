@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import { AnimatePresence } from 'framer-motion'
@@ -408,4 +408,14 @@ function ImportsExportsPage() {
   )
 }
 
-export default ImportsExportsPage
+// useSearchParams() opts a route out of static prerendering unless it sits
+// under a Suspense boundary — without this `next build` fails on /exports with
+// "should be wrapped in a suspense boundary". The page reads ?import=<platform>
+// to open the importer directly from the onboarding checklist.
+export default function ExportsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ImportsExportsPage />
+    </Suspense>
+  )
+}
