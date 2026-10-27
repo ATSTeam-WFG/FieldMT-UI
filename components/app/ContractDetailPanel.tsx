@@ -1,8 +1,13 @@
 'use client'
 
 import { X, FileText } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { SlideOverPanel } from './SlideOverPanel'
-import type { Contract } from '@/lib/api/contracts'
+import { AssignmentControl } from './AssignmentControl'
+import { getContract, type Contract } from '@/lib/api/contracts'
+import { useSetReferrer } from '@/lib/hooks/useContracts'
+import { useAgencyMembers } from '@/lib/hooks/useMyAgency'
+import { toast } from '@/lib/hooks/use-toast'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -30,7 +35,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const STATUS_LABEL: Record<string, string> = {
   initiated: 'Opened',
-  pending:   'Pending',
+  pending:   'Open',
   updated:   'Updated',
   closed:    'Closed',
   cancelled: 'Cancelled',
@@ -58,7 +63,46 @@ interface Props {
   onClose: () => void
 }
 
-export function ContractDetailPanel({ contract, onClose }: Props) {
+const BROUGHT_BUSINESS = (
+  <span style={{
+    fontSize: 10, fontWeight: 600, letterSpacing: '0.04em',
+    color: '#c4a574', border: '1px solid #c4a574',
+    borderRadius: 4, padding: '1px 6px',
+  }}>
+    BROUGHT THE BUSINESS
+  </span>
+)
+
+export function ContractDetailPanel({ contract: initial, onClose }: Props) {
+  // Live copy, so an assignment or referrer change shows straight away
+  const { data: contract = initial } = useQuery({
+    queryKey: ['contract', initial.id],
+    queryFn: () => getContract(initial.id),
+    initialData: initial,
+  })
+  const { data: members } = useAgencyMembers()
+  const setReferrer = useSetReferrer()
+
+  // The referral source is always one of the order's own parties (D19)
+  const parties = [
+    contract.contact && { id: contract.contact.id, label: `${contract.contact.name} (agent)` },
+    contract.secondary_contact && { id: contract.secondary_contact.id, label: `${contract.secondary_contact.name} (second agent)` },
+    contract.lender_contact && { id: contract.lender_contact.id, label: `${contract.lender_contact.name} (lender)` },
+  ].filter(Boolean) as { id: string; label: string }[]
+  const provenance = contract.referrer_source === 'qualia'
+    ? 'From Qualia'
+    : contract.referrer_source === 'manager' && contract.referrer_set_at
+      ? `Set by ${members?.members.find(m => m.id === contract.referrer_set_by)?.name ?? 'a manager'} on ${formatDate(contract.referrer_set_at)}`
+      : null
+
+  async function changeReferrer(contactId: string | null) {
+    try {
+      await setReferrer.mutateAsync({ id: contract.id, contactId })
+    } catch {
+      toast({ title: 'Could not set referral source', description: 'Please try again.', variant: 'destructive' })
+    }
+  }
+
   const statusColor = STATUS_COLOR[contract.status] ?? 'var(--muted)'
   const statusLabel = STATUS_LABEL[contract.status] ?? capitalize(contract.status)
   const title = contract.title || contract.property_address || 'Untitled Contract'
@@ -133,15 +177,7 @@ export function ContractDetailPanel({ contract, onClose }: Props) {
                   {rc!.company && (
                     <span style={{ fontSize: 12, color: 'var(--muted)' }}>· {rc!.company}</span>
                   )}
-                  {contract.referring_contact_id === rc!.id && (
-                    <span style={{
-                      fontSize: 10, fontWeight: 600, letterSpacing: '0.04em',
-                      color: '#c4a574', border: '1px solid #c4a574',
-                      borderRadius: 4, padding: '1px 6px',
-                    }}>
-                      BROUGHT THE BUSINESS
-                    </span>
-                  )}
+                  {contract.referring_contact_id === rc!.id && BROUGHT_BUSINESS}
                 </div>
               ))}
             </div>
@@ -152,12 +188,46 @@ export function ContractDetailPanel({ contract, onClose }: Props) {
             <Field
               label="Financing Lender"
               value={
-                contract.lender_contact.company
-                  ? `${contract.lender_contact.name} · ${contract.lender_contact.company}`
-                  : contract.lender_contact.name
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {contract.lender_contact.company
+                    ? `${contract.lender_contact.name} · ${contract.lender_contact.company}`
+                    : contract.lender_contact.name}
+                  {contract.referring_contact_id === contract.lender_contact.id && BROUGHT_BUSINESS}
+                </span>
               }
             />
           )}
+
+          {/* Referral source (D19) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+              Referred By
+            </span>
+            {members?.can_manage && parties.length > 0 ? (
+              <select
+                value={contract.referring_contact_id ?? ''}
+                onChange={e => changeReferrer(e.target.value || null)}
+                disabled={setReferrer.isPending}
+                style={{ fontSize: 13, height: 34, borderRadius: 6, padding: '0 8px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--foreground)' }}
+              >
+                <option value="">No referral source</option>
+                {parties.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            ) : (
+              <span style={{ fontSize: 14, color: contract.referring_contact ? 'var(--foreground)' : 'var(--muted)' }}>
+                {contract.referring_contact?.name ?? 'No referral source'}
+              </span>
+            )}
+            {provenance && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{provenance}</span>}
+          </div>
+
+          {/* Assignment (D16) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+              Assigned To
+            </span>
+            <AssignmentControl contract={contract} members={members} />
+          </div>
 
           {/* Amounts */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -182,9 +252,9 @@ export function ContractDetailPanel({ contract, onClose }: Props) {
             <Field label="City" value={contract.city} />
           )}
 
-          {/* File number */}
-          {contract.file_number && (
-            <Field label="File Number" value={contract.file_number} />
+          {/* File number — an imported order's is Qualia's Order Number */}
+          {(contract.file_number || contract.external_order_id) && (
+            <Field label="File Number" value={contract.file_number ?? contract.external_order_id ?? ''} />
           )}
 
           {/* Notes */}

@@ -350,14 +350,23 @@ export default function ContactPage({ params }: ContactPageProps) {
   )
 
   // ── Relationship Score Card ────────────────────────────────────────────────
+  // A rep sees their own score for this contact; a manager sees agency health (D17).
+  const isAgencyScore = contact.score_scope === 'agency'
   const ScoreCard = (
     <div style={cardStyle}>
       <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)', margin: '0 0 16px' }}>
-        Relationship Score
+        {isAgencyScore ? 'Agency Health' : 'Your Relationship Score'}
       </p>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
         <ScoreRing score={contact.score} size={100} />
       </div>
+      {contact.score === null && (
+        <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', margin: 0 }}>
+          {isAgencyScore
+            ? `Nobody on your team has logged an activity with ${contact.name} in the last 180 days.`
+            : `You haven't logged an activity with ${contact.name} in the last 180 days.`}
+        </p>
+      )}
       {contact.score_breakdown && (
         <ScoreBreakdown breakdown={contact.score_breakdown} />
       )}
@@ -545,6 +554,12 @@ export default function ContactPage({ params }: ContactPageProps) {
         </span>
       </div>
 
+      {(contact.colleagues ?? []).map(c => (
+        <p key={c.agent_id} style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 8px' }}>
+          {c.name} also works with {contact.name} — last activity {relativeDays(c.last_activity_date).toLowerCase()}
+        </p>
+      ))}
+
       {allActivities.length === 0 ? (
         <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '24px 0' }}>
           No activities logged yet.
@@ -685,7 +700,7 @@ export default function ContactPage({ params }: ContactPageProps) {
   const AIInsightCard = (
     <AICard label="Insight">
       <p style={{ fontSize: 13, color: 'var(--body)', lineHeight: 1.6, margin: 0 }}>
-        {contact.name} likely has 2–3 referrals available in the next 30 days — they respond best to lunches and CE classes. Relationship score up {Math.round(contact.score * 0.13)} pts since January.
+        {contact.name} likely has 2–3 referrals available in the next 30 days — they respond best to lunches and CE classes.{contact.score !== null && ` Relationship score up ${Math.round(contact.score * 0.13)} pts since January.`}
       </p>
     </AICard>
   )

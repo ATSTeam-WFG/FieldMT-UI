@@ -36,7 +36,6 @@ const CONTACT_TYPE_OPTIONS: { value: ContactType; label: string; Icon: typeof Us
   { value: 'vendor',  label: 'Vendor',  Icon: Building2 },
 ]
 
-const REALTOR_SUBTYPE_OPTIONS: ('Buyer' | 'Seller')[] = ['Buyer', 'Seller']
 
 // ── FieldLabel helper ─────────────────────────────────────────────────────────
 
@@ -104,7 +103,6 @@ export function AddContactPanel() {
   const [contactType, setContactType] = useState<ContactType>('realtor')
   const [name, setName] = useState('')
   const [company, setCompany] = useState('')
-  const [realtorSubtype, setRealtorSubtype] = useState<'Buyer' | 'Seller'>('Buyer')
   const [industry, setIndustry] = useState('')
   const [role, setRole] = useState('')
   const [email, setEmail] = useState('')
@@ -120,7 +118,6 @@ export function AddContactPanel() {
     if (editingContact) {
       const t = (editingContact.type as ContactType) ?? 'realtor'
       setContactType(t === 'lender' || t === 'vendor' ? t : 'realtor')
-      setRealtorSubtype(editingContact.subtype === 'seller' ? 'Seller' : 'Buyer')
       setName(editingContact.name)
       setCompany(editingContact.company)
       setRole(editingContact.role || '')
@@ -164,7 +161,6 @@ export function AddContactPanel() {
     setContactType('realtor')
     setName('')
     setCompany('')
-    setRealtorSubtype('Buyer')
     setIndustry('')
     setRole('')
     setEmail('')
@@ -181,7 +177,6 @@ export function AddContactPanel() {
         company: company || null,
         job_title: role || null,
         type: contactType,
-        subtype: contactType === 'realtor' ? realtorSubtype.toLowerCase() : null,
         email: email || null,
         phone: phone || null,
         tags: selectedTags,
@@ -279,38 +274,6 @@ export function AddContactPanel() {
               style={inputStyle}
             />
           </div>
-
-          {/* Section 4a — Realtor Type (realtors only) */}
-          {contactType === 'realtor' && (
-            <div style={{ marginBottom: 20 }}>
-              <FieldLabel label="Realtor Type" />
-              <div
-                className="flex overflow-hidden rounded-[8px]"
-                style={{ border: '1px solid var(--border)', height: 44 }}
-              >
-                {REALTOR_SUBTYPE_OPTIONS.map((opt, i) => {
-                  const active = realtorSubtype === opt
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setRealtorSubtype(opt)}
-                      className="flex flex-1 items-center justify-center transition-colors"
-                      style={{
-                        fontSize: 13,
-                        fontWeight: active ? 600 : 400,
-                        backgroundColor: active ? '#c4a574' : 'var(--surface)',
-                        color: active ? '#000000' : 'var(--muted)',
-                        borderRight: i < REALTOR_SUBTYPE_OPTIONS.length - 1 ? '1px solid var(--border)' : 'none',
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Section 4b — Industry (lenders & vendors) */}
           {contactType !== 'realtor' && (

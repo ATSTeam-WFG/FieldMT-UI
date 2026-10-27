@@ -193,7 +193,7 @@ export async function getAgentDetail(agentId: string): Promise<AgentDetail> {
       costPerContact: [],
       efficiency: {
         spendPerClosing: null, activitiesPerClosing: null, efficiencyScore: 0,
-        totalSpend: 0, totalActivities: 0, closedContracts: 0, closedContractValue: 0,
+        totalSpend: 0, totalActivities: 0, closedContracts: 0, closedUnconfirmedContracts: 0, closedContractValue: 0,
       },
       sponsorActivity: [],
     },

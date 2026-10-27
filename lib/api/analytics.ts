@@ -155,6 +155,8 @@ export interface SpendEfficiency {
   totalSpend: number
   totalActivities: number
   closedContracts: number
+  /** Of closedContracts, still open in Qualia more than 14 days past their close date */
+  closedUnconfirmedContracts: number
   closedContractValue: number
 }
 
@@ -204,7 +206,7 @@ interface AgentPerformanceBackend {
   efficiency: {
     spend_per_closing: number | null; activities_per_closing: number | null
     efficiency_score: number; total_spend: number; total_activities: number
-    closed_contracts: number; closed_contract_value: number
+    closed_contracts: number; closed_unconfirmed_contracts: number; closed_contract_value: number
   }
   sponsor_activity: Array<{
     sponsor_id: string; sponsor_name: string; initials: string
@@ -234,6 +236,7 @@ export async function getAgentPerformance(period: Period = 'mtd'): Promise<Agent
       totalSpend: d.efficiency.total_spend,
       totalActivities: d.efficiency.total_activities,
       closedContracts: d.efficiency.closed_contracts,
+      closedUnconfirmedContracts: d.efficiency.closed_unconfirmed_contracts ?? 0,
       closedContractValue: d.efficiency.closed_contract_value,
     },
     sponsorActivity: d.sponsor_activity.map(r => ({

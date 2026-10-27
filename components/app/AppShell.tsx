@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { House, Activity, Users, CalendarCheck, Ellipsis, LayoutDashboard, FileText } from 'lucide-react'
+import { House, Activity, Users, BookUser, CalendarCheck, Ellipsis, LayoutDashboard, FileText } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { TopNav } from './TopNav'
@@ -52,8 +52,8 @@ const repMobileTabItems: TabItem[] = [
 const managerMobileTabItems: TabItem[] = [
   { label: 'Dashboard',  icon: LayoutDashboard, href: '/manager'    },
   { label: 'My Team',    icon: Users,           href: '/team'       },
-  { label: 'Activities', icon: Activity,        href: '/activities' },
   { label: 'Contracts',  icon: FileText,        href: '/contracts'  },
+  { label: 'Contacts',   icon: BookUser,        href: '/contacts'   },
   { label: 'More',       icon: Ellipsis,        href: '/coming-soon' },
 ]
 
