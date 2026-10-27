@@ -143,7 +143,7 @@ const EFF_OPTIONS: { value: EffMode; label: string }[] = [
 
 function SpendEfficiencySection({
   eff,
-}: { eff: { spendPerClosing: number | null; activitiesPerClosing: number | null; efficiencyScore: number; totalSpend: number; totalActivities: number; closedContracts: number } }) {
+}: { eff: { spendPerClosing: number | null; activitiesPerClosing: number | null; efficiencyScore: number; totalSpend: number; totalActivities: number; closedContracts: number; closedUnconfirmedContracts: number } }) {
   const [mode, setMode] = useState<EffMode>('score')
 
   const hasClosings = eff.closedContracts > 0
@@ -207,11 +207,14 @@ function SpendEfficiencySection({
           {[
             { label: 'Total Spend', value: `$${eff.totalSpend.toLocaleString('en-US', { maximumFractionDigits: 0 })}` },
             { label: 'Activities', value: String(eff.totalActivities) },
-            { label: 'Closings', value: String(eff.closedContracts) },
-          ].map(({ label, value }) => (
+            { label: 'Closings', value: String(eff.closedContracts),
+              // Open orders past their close date count, but are marked (D18)
+              note: eff.closedUnconfirmedContracts ? `${eff.closedUnconfirmedContracts} unconfirmed` : null },
+          ].map(({ label, value, note }) => (
             <div key={label} style={{ padding: '8px 16px', backgroundColor: 'var(--surface)', textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)' }}>{value}</div>
               <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>{label}</div>
+              {note && <div style={{ fontSize: 10, color: '#d97706', marginTop: 2, whiteSpace: 'nowrap' }}>{note}</div>}
             </div>
           ))}
         </div>
@@ -603,7 +606,7 @@ function AgentPerformancePage() {
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             <SpendEfficiencySection eff={data?.efficiency ?? {
               spendPerClosing: null, activitiesPerClosing: null, efficiencyScore: 0,
-              totalSpend: 0, totalActivities: 0, closedContracts: 0, closedContractValue: 0,
+              totalSpend: 0, totalActivities: 0, closedContracts: 0, closedUnconfirmedContracts: 0, closedContractValue: 0,
             }} />
           </div>
         </div>

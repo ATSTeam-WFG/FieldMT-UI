@@ -77,7 +77,7 @@ function BreakdownBars({ bd }: { bd: BreakdownType }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', width: '100%', maxWidth: 420 }}>
       {DIMS.map(({ key, label }) => {
-        const level = (bd as Record<string, string>)[key] ?? 'low'
+        const level = (bd as unknown as Record<string, string>)[key] ?? 'low'
         return (
           <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -144,7 +144,9 @@ export default function MyRelationsPage() {
   const router = useRouter()
   const [sort, setSort] = useState<SortMode>('risk-first')
 
-  const { data, isLoading } = useContacts()
+  // Only contacts this rep works — a contact they've never logged an activity with is
+  // Dormant for them and lives on /contacts, not here (D17).
+  const { data, isLoading } = useContacts({ scope: 'mine' })
   const { data: perfData } = useAgentPerformance('mtd')
   const { data: trendsData } = useScoreTrends()
 
@@ -153,7 +155,9 @@ export default function MyRelationsPage() {
   )
 
   // Scored contacts only: realtors and lenders (vendors are not scored)
-  const allContacts = (data?.items ?? []).filter(c => c.type !== 'vendor')
+  const allContacts = (data?.items ?? []).filter(
+    (c): c is Contact & { score: number } => c.type !== 'vendor' && c.score !== null
+  )
 
   const healthy = allContacts.filter(c => c.score >= 80)
   const watch   = allContacts.filter(c => c.score >= 60 && c.score < 80)

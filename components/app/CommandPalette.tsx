@@ -16,7 +16,9 @@ interface Contact {
   name: string
   initials: string
   company: string
-  score?: number
+  type?: string
+  /** null = Dormant for the viewer */
+  score?: number | null
   lastActivityDate?: string
 }
 
@@ -98,10 +100,12 @@ function ContactRow({ contact, onClose }: { contact: Contact; onClose: () => voi
         <span style={{ fontSize: 14, color: 'var(--foreground)' }}>{contact.name}</span>
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>{contact.company}</span>
       </div>
-      {contact.score !== undefined && (
+      {contact.score != null ? (
         <span style={{ fontSize: 13, fontWeight: 600, color: '#c4a574', flexShrink: 0 }}>
           {contact.score}
         </span>
+      ) : contact.type !== 'vendor' && (
+        <span style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Dormant</span>
       )}
     </Link>
   )

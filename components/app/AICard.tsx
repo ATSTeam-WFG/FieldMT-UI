@@ -5,7 +5,7 @@ import { Sparkles, X, Volume2, ChevronDown, ChevronRight } from 'lucide-react'
 
 // ── Shared visual token ───────────────────────────────────────────────────────
 
-const AI_CARD_BASE: React.CSSProperties = {
+export const AI_CARD_BASE: React.CSSProperties = {
   backgroundColor: 'rgba(196,165,116,0.06)',
   border: '1px solid rgba(196,165,116,0.22)',
   borderLeftWidth: 4,

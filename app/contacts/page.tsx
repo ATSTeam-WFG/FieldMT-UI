@@ -36,8 +36,11 @@ const TYPE_LABEL: Record<string, string> = {
   vendor:  'Vendor',
 }
 
-function ScoreBadge({ score, type }: { score: number; type: string }) {
+function ScoreBadge({ score, type }: { score: number | null; type: string }) {
   if (type === 'vendor') return null
+  if (score === null) {
+    return <span style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'right' }}>Dormant</span>
+  }
   return (
     <span style={{ color: '#c4a574', fontWeight: 700, fontSize: 14, minWidth: 28, textAlign: 'right' }}>
       {score}
@@ -45,11 +48,8 @@ function ScoreBadge({ score, type }: { score: number; type: string }) {
   )
 }
 
-function TypeBadge({ type, subtype }: { type: string; subtype?: string | null }) {
+function TypeBadge({ type }: { type: string }) {
   const label = TYPE_LABEL[type] ?? type
-  const suffix = type === 'realtor' && subtype
-    ? ` · ${subtype.charAt(0).toUpperCase()}${subtype.slice(1)}`
-    : ''
   return (
     <span
       style={{
@@ -61,7 +61,7 @@ function TypeBadge({ type, subtype }: { type: string; subtype?: string | null })
         whiteSpace: 'nowrap',
       }}
     >
-      {label}{suffix}
+      {label}
     </span>
   )
 }
@@ -168,7 +168,7 @@ function ContactRow({
         </span>
 
         {/* Type */}
-        <TypeBadge type={contact.type} subtype={contact.subtype} />
+        <TypeBadge type={contact.type} />
 
         {/* Score */}
         <div style={{ textAlign: 'right' }}>
@@ -261,7 +261,7 @@ export default function ContactsPage() {
   })
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
-  const allContacts = data?.items ?? []
+  const allContacts = useMemo(() => data?.items ?? [], [data])
 
   function toggleFavorite(id: string) {
     setFavorites(prev => {

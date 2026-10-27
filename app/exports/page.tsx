@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useMyAgency } from '@/lib/hooks/useMyAgency'
 import { AnimatePresence } from 'framer-motion'
 import {
   FileText, Users, TrendingUp, BarChart2,
@@ -114,6 +113,12 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function daysAgo(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (days <= 0) return 'today'
+  return days === 1 ? 'yesterday' : `${days} days ago`
+}
+
 function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -147,13 +152,13 @@ function TableFooter({ page, total, onPage }: {
 // ── Page ─────────────────────────────────────────────────────────────────────────
 
 function ImportsExportsPage() {
-  const { data: agency } = useMyAgency()
   const searchParams = useSearchParams()
   const { role, persona } = useRole()
   const isManager = role === 'manager'
 
   const { history: exportHistory, add: addExport, clear: clearExport } = useExportHistory()
-  const { history: importHistory, add: addImport, clear: clearImport } = useImportHistory()
+  const { data: importData } = useImportHistory()
+  const importHistory = importData?.items ?? []
 
   const [openCard, setOpenCard] = useState<ExportCard | null>(null)
   const [openPlatform, setOpenPlatform] = useState<PlatformCard | null>(null)
@@ -197,7 +202,7 @@ function ImportsExportsPage() {
         </div>
 
         {/* ── IMPORTS ─────────────────────────────────────────── */}
-        <SectionHeading title="Imports" subtitle="Bring closed deals in from your closing software" />
+        <SectionHeading title="Imports" subtitle="Bring your orders in from your closing software" />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 12 }}>
           {PLATFORMS.map(p => {
@@ -242,6 +247,12 @@ function ImportsExportsPage() {
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, flex: 1, margin: 0 }}>{p.description}</p>
+                {/* Plain information, not a reminder — cadence is agreed with the agency, not enforced (D20) */}
+                {!soon && (
+                  <p style={{ fontSize: 12, color: 'var(--body)', margin: 0 }}>
+                    {importData?.lastImportAt ? `Last import: ${daysAgo(importData.lastImportAt)}` : 'No imports yet'}
+                  </p>
+                )}
               </div>
             )
           })}
@@ -251,11 +262,6 @@ function ImportsExportsPage() {
         <div className="app-card" style={{ marginBottom: 32 }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className="font-semibold" style={{ fontSize: 14, color: 'var(--foreground)' }}>Import History</span>
-            {importHistory.length > 0 && (
-              <button onClick={clearImport} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 8px', height: 26, borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', fontSize: 11, color: 'var(--muted)', cursor: 'pointer' }}>
-                <Trash2 size={11} /> Clear
-              </button>
-            )}
           </div>
           {importHistory.length === 0 ? (
             <div style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
@@ -263,8 +269,8 @@ function ImportsExportsPage() {
             </div>
           ) : (
             <>
-              <div className="hidden md:grid" style={{ gridTemplateColumns: '1fr 90px 90px 120px', padding: '8px 20px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-                {['File', 'Contracts', 'Contacts', 'Imported'].map(h => (
+              <div className="hidden md:grid" style={{ gridTemplateColumns: '1fr 140px 70px 80px 80px 120px', padding: '8px 20px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+                {['File', 'Uploaded by', 'New', 'Updated', 'Contacts', 'Imported'].map(h => (
                   <span key={h} style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</span>
                 ))}
               </div>
@@ -272,22 +278,24 @@ function ImportsExportsPage() {
                 const platformName = PLATFORMS.find(p => p.platform === item.platform)?.name ?? item.platform
                 return (
                   <div key={item.id} style={{ borderBottom: i < importRows.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <div className="hidden md:grid" style={{ gridTemplateColumns: '1fr 90px 90px 120px', padding: '12px 20px', alignItems: 'center' }}>
+                    <div className="hidden md:grid" style={{ gridTemplateColumns: '1fr 140px 70px 80px 80px 120px', padding: '12px 20px', alignItems: 'center' }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.fileName}</div>
                         <div style={{ fontSize: 11, color: 'var(--muted)' }}>{platformName}</div>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: GOLD }}>{item.imported}</span>
+                      <span style={{ fontSize: 12, color: 'var(--body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.uploadedByName ?? '—'}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: GOLD }}>{item.contractsImported}</span>
+                      <span style={{ fontSize: 13, color: 'var(--foreground)' }}>{item.contractsUpdated}</span>
                       <span style={{ fontSize: 13, color: 'var(--foreground)' }}>{item.contactsCreated}</span>
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{relativeTime(item.generatedAt)}</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{relativeTime(item.createdAt)}</span>
                     </div>
                     <div className="flex md:hidden items-center justify-between" style={{ padding: '14px 20px', gap: 12 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                         <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.fileName}</span>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{platformName} · {relativeTime(item.generatedAt)}</span>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{item.uploadedByName ?? platformName} · {relativeTime(item.createdAt)}</span>
                       </div>
                       <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: GOLD, fontWeight: 600 }}><FileText size={12} /> {item.imported}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: GOLD, fontWeight: 600 }}><FileText size={12} /> {item.contractsImported + item.contractsUpdated}</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--muted)' }}><Users size={12} /> {item.contactsCreated}</span>
                       </div>
                     </div>
@@ -388,10 +396,8 @@ function ImportsExportsPage() {
         {openPlatform && (
           <ImportPanel
             platform={openPlatform}
-            owner={isManager ? 'agency' : 'you'}
-            agencyName={agency?.name ?? 'Your agency'}
             onClose={() => setOpenPlatform(null)}
-            onCommitted={(item) => { addImport(item); setImportPage(1) }}
+            onCommitted={() => setImportPage(1)}
           />
         )}
         {openCard && (

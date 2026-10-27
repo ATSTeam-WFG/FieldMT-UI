@@ -70,3 +70,13 @@ export async function acceptInvite(
 ): Promise<{ access_token: string; refresh_token?: string; user: { id: string; email: string; name: string; initials: string; role: string } }> {
   return api.post(`/invites/${inviteId}/accept`, payload)
 }
+
+export interface AgencyMembers {
+  /** May assign contracts and set referral sources (D16, D19) */
+  can_manage: boolean
+  members: { id: string; name: string; role: string }[]
+}
+
+export async function getAgencyMembers(): Promise<AgencyMembers> {
+  return api.get('/agencies/me/members')
+}

@@ -9,6 +9,7 @@ import {
   Activity,
   FileText,
   Users,
+  BookUser,
   CalendarCheck,
   TrendingUp,
   HeartHandshake,
@@ -43,7 +44,7 @@ const managerMainNav: NavItemDef[] = [
   { label: 'Dashboard',  icon: LayoutDashboard, href: '/manager'      },
   { label: 'Team',       icon: Users,           href: '/team'         },
   { label: 'Contracts',  icon: FileText,        href: '/contracts'    },
-  { label: 'Activities', icon: Activity,        href: '/activities'   },
+  { label: 'Contacts',   icon: BookUser,        href: '/contacts'     },
 ]
 
 const managerInsightNav: NavItemDef[] = [

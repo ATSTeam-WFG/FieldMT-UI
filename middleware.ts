@@ -4,6 +4,12 @@ import { PRESENCE_COOKIE } from '@/lib/storage-keys'
 const PUBLIC_PATHS = new Set(['/', '/login', '/signup', '/onboarding', '/coming-soon', '/manifest.webmanifest'])
 
 export function middleware(request: NextRequest) {
+  // Azure only: refuse anything that did not come through our Front Door profile.
+  const frontDoorId = process.env.AFD_ID
+  if (frontDoorId && request.headers.get('x-azure-fdid') !== frontDoorId) {
+    return new NextResponse(null, { status: 403 })
+  }
+
   const { pathname } = request.nextUrl
 
   if (
