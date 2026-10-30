@@ -7,12 +7,13 @@ import { useInviteAgent } from '@/lib/context/InviteAgentContext'
 import { useSuccessToast } from '@/components/app/SuccessToast'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { SlideOverPanel } from './SlideOverPanel'
-import { createInvites } from '@/lib/api/agencies'
+import { createInvites, type AgencyData, type MemberRole } from '@/lib/api/agencies'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLES = [
-  { value: 'rep', label: 'Sales Rep' },
+const ROLES: { value: MemberRole; label: string; description: string }[] = [
+  { value: 'agent', label: 'Rep', description: 'Works their own book' },
+  { value: 'manager', label: 'Manager', description: 'Also sees the team' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,44 +65,40 @@ export function InviteAgentPanel() {
   const showToast = useSuccessToast()
   const { theme } = useTheme()
 
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [role, setRole] = useState('rep')
-  const [welcomeNote, setWelcomeNote] = useState('')
+  const [role, setRole] = useState<MemberRole>('agent')
   const [loading, setLoading] = useState(false)
 
   function resetForm() {
-    setName('')
     setEmail('')
-    setPhone('')
-    setRole('rep')
-    setWelcomeNote('')
-  }
-
-  const REP_TIER_MAP: Record<string, string> = {
-    'rep': 'sales_rep',
+    setRole('agent')
   }
 
   async function handleSend() {
     setLoading(true)
     try {
-      await createInvites([{
-        email,
-        full_name: name,
-        phone: phone || null,
-        rep_tier: REP_TIER_MAP[role] ?? 'sales_rep',
-        welcome_note: welcomeNote || null,
-      }])
+      const created = await createInvites([{ email: email.trim(), role }])
       // This panel bypasses the mutation hooks, so nothing was being invalidated
-      // — the roster and the manager's invite_rep step both stayed stale.
+      // — the roster and the manager's invite_rep step both stayed stale. The
+      // first invite from a single-user agency also turns on the team view.
+      const wasSingle = queryClient.getQueryData<AgencyData | null>(['my-agency'])?.type === 'single'
       queryClient.invalidateQueries({ queryKey: ['my-team'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-roster'] })
+      queryClient.invalidateQueries({ queryKey: ['my-agency'] })
       queryClient.invalidateQueries({ queryKey: ['onboarding-checklist'] })
-      showToast('Invitation sent successfully')
+      if (created.length) {
+        // No email goes out yet — the link is the invitation, so hand it over.
+        await navigator.clipboard.writeText(`${window.location.origin}${created[0].path}`).catch(() => {})
+        showToast(`Invitation link copied — share it with ${created[0].email}. It's also on Team.`)
+      } else {
+        showToast('Already invited or already on the team')
+      }
       closeInviteAgent()
       resetForm()
-    } catch {
-      showToast('Failed to send invite — please try again')
+      // The first invitation from a single-user agency turns on the team view.
+      if (created.length && wasSingle) window.location.reload()
+    } catch (err) {
+      showToast(err instanceof Error && err.message ? err.message : 'Failed to send invite — please try again')
     } finally {
       setLoading(false)
     }
@@ -113,7 +110,7 @@ export function InviteAgentPanel() {
   }
 
   const activeTileBg = theme === 'dark' ? '#1f1a12' : '#fdf8f0'
-  const canSend = name.trim() !== '' && email.trim() !== ''
+  const canSend = /.+@.+\..+/.test(email.trim())
 
   return (
     <SlideOverPanel onClose={closeInviteAgent} width={480}>
@@ -125,7 +122,7 @@ export function InviteAgentPanel() {
         <div className="flex items-center gap-2">
           <UserPlus size={16} style={{ color: '#c4a574' }} />
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)' }}>
-            Invite Rep
+            Invite a teammate
           </span>
         </div>
         <button
@@ -140,79 +137,42 @@ export function InviteAgentPanel() {
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto" style={{ padding: 20 }}>
 
-        {/* ── Section 1: Identity ── */}
         <div style={{ marginBottom: 24 }}>
-          <SectionHeading icon={User} label="Rep Identity" />
+          <SectionHeading icon={User} label="Who" />
+          <FieldLabel label="Email" required />
+          <input type="email" placeholder="name@youragency.com" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} autoFocus />
+        </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="Full Name" required />
-            <input type="text" placeholder="e.g. Jordan Mitchell" value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="Email" required />
-            <input type="email" placeholder="rep@premiertitle.com" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
-          </div>
-
-          <div>
-            <FieldLabel label="Phone" optional />
-            <input type="tel" placeholder="(404) 555-0100" value={phone} onChange={e => setPhone(e.target.value)} style={inputStyle} />
+        <div style={{ marginBottom: 16 }}>
+          <SectionHeading icon={ShieldCheck} label="They join as" />
+          <div className="grid grid-cols-2 gap-2">
+            {ROLES.map(({ value, label, description }) => {
+              const active = role === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRole(value)}
+                  className="flex flex-col items-start rounded-[8px] transition-colors"
+                  style={{
+                    padding: 12, gap: 2,
+                    border: active ? '2px solid #c4a574' : '1px solid var(--border)',
+                    backgroundColor: active ? activeTileBg : 'var(--surface)',
+                    cursor: 'pointer',
+                    textAlign: 'left' as const,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#c4a574' : 'var(--foreground)' }}>{label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{description}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* ── Section 2: Assignment ── */}
-        <div style={{ marginBottom: 24 }}>
-          <SectionHeading icon={ShieldCheck} label="Assignment" />
-
-          <div>
-            <FieldLabel label="Role" required />
-            <div className="grid grid-cols-1 gap-2">
-              {ROLES.map(({ value, label }) => {
-                const active = role === value
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setRole(value)}
-                    className="flex items-center justify-center rounded-[8px] transition-colors"
-                    style={{
-                      height: 40, padding: '0 8px',
-                      border: active ? '2px solid #c4a574' : '1px solid var(--border)',
-                      backgroundColor: active ? activeTileBg : 'var(--surface)',
-                      cursor: 'pointer',
-                      color: active ? '#c4a574' : 'var(--muted)',
-                      fontWeight: active ? 600 : 400,
-                      fontSize: 12,
-                      textAlign: 'center' as const,
-                    }}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Section 3: Welcome Note ── */}
-        <div>
-          <FieldLabel label="Welcome Note" optional />
-          <div className="relative">
-            <textarea
-              placeholder="Add a personal welcome message to include with the invitation email…"
-              value={welcomeNote}
-              onChange={e => setWelcomeNote(e.target.value.slice(0, 400))}
-              style={{
-                width: '100%', height: 96, padding: '10px 12px', borderRadius: 8,
-                border: '1px solid var(--border)', backgroundColor: 'var(--surface)',
-                color: 'var(--foreground)', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit',
-              }}
-            />
-            <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 11, color: 'var(--muted)' }}>
-              {welcomeNote.length}/400
-            </span>
-          </div>
-        </div>
+        <p style={{ fontSize: 12, color: 'var(--muted)' }}>
+          Expires in 7 days. You can resend or revoke it from Team.
+        </p>
 
       </div>
 
@@ -242,7 +202,7 @@ export function InviteAgentPanel() {
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? 'Sending…' : 'Send Invite'}
+          {loading ? 'Creating…' : 'Create invitation link'}
         </button>
       </div>
     </SlideOverPanel>

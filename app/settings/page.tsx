@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { useMyAgency } from '@/lib/hooks/useMyAgency'
+import { setRepProfile } from '@/lib/api/agencies'
 import { AppShell } from '@/components/app/AppShell'
 import { useRole } from '@/lib/context/RoleContext'
 import { useTheme } from '@/lib/context/ThemeContext'
@@ -91,7 +93,7 @@ function ToggleRow({
 
 export default function SettingsPage() {
   const { data: agency } = useMyAgency()
-  const { persona, role } = useRole()
+  const { persona, role, userType, canSwitch } = useRole()
   const { theme, toggleTheme, setTheme } = useTheme()
   const { settings, isLoading, update } = useSettings()
 
@@ -329,6 +331,40 @@ export default function SettingsPage() {
               </div>
             </Section>
           </div>
+
+          {/* ── How you work (an agency owner or manager) ─────────────────── */}
+          {userType === 'manager' && agency && (
+            <Section title={agency.type === 'multi' ? 'How you work' : 'Your team'}>
+              {agency.type === 'multi' ? (
+                <ToggleRow
+                  label="I also work a book"
+                  description="Keep your own rep dashboard alongside the team view, with a switcher between them."
+                  value={canSwitch}
+                  onChange={async (rep) => {
+                    await setRepProfile(rep)
+                    window.location.href = rep ? '/settings' : '/manager'
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-between" style={{ padding: '14px 20px', gap: 16 }}>
+                  <div className="flex flex-col" style={{ gap: 2 }}>
+                    <span style={{ fontSize: 14, color: 'var(--foreground)' }}>Grow your team</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      Bring reps into {agency.name} and get the team view: performance across your reps and 1:1 detail.
+                      Everything you’ve logged stays where it is.
+                    </span>
+                  </div>
+                  <Link
+                    href="/team"
+                    className="shrink-0 rounded-[8px] transition-opacity hover:opacity-90"
+                    style={{ height: 34, padding: '0 14px', display: 'inline-flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#000000', backgroundColor: '#c4a574', whiteSpace: 'nowrap' }}
+                  >
+                    Add your first rep
+                  </Link>
+                </div>
+              )}
+            </Section>
+          )}
 
           {/* ── Manager-only sections ────────────────────────────────────── */}
           {role === 'manager' && (

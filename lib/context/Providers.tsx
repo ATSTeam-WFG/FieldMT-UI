@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { ThemeProvider } from './ThemeContext'
 import { RoleProvider } from './RoleContext'
 import { ActivityLogProvider } from './ActivityLogContext'
@@ -20,6 +21,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Every framer-motion animation honours the OS "reduce motion" setting. */}
+      <MotionConfig reducedMotion="user">
       <ThemeProvider>
         <RoleProvider>
           <ActivityLogProvider>
@@ -41,6 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           </ActivityLogProvider>
         </RoleProvider>
       </ThemeProvider>
+      </MotionConfig>
     </QueryClientProvider>
   )
 }

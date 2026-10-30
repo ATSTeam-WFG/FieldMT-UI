@@ -27,7 +27,9 @@ test('login page renders required fields', async ({ page }) => {
   await expect(page.locator('#email')).toBeVisible()
   await expect(page.locator('#password')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
-  await expect(page.getByText('Continue with Google')).toBeVisible()
+  // Google and Microsoft arrive with B2C; until then they are not offered at all.
+  await expect(page.getByText('Continue with Google')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Join with code' })).toBeVisible()
 
   expect(errors).toHaveLength(0)
 })
@@ -61,8 +63,8 @@ test('sign-in with valid credentials redirects to /dashboard', async ({ page }) 
   await expect(page).toHaveURL(/\/(dashboard|manager)/, { timeout: 20_000 })
 })
 
-test('"New? Start here" link goes to /onboarding', async ({ page }) => {
+test('"Join with code" goes to /join', async ({ page }) => {
   await page.goto('/login')
-  await page.getByText('New? Start here →').click()
-  await expect(page).toHaveURL(/\/onboarding/)
+  await page.getByRole('link', { name: 'Join with code' }).click()
+  await expect(page).toHaveURL(/\/join$/)
 })

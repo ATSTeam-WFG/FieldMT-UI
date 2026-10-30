@@ -1,33 +1,19 @@
 import { api } from './client'
 
-export async function registerAgency(payload: {
-  name: string
-  state?: string | null
-  rep_count_range?: string | null
-  website?: string | null
-  referral_code: string
-}): Promise<{ id: string }> {
-  return api.post('/agencies', payload)
-}
-
-export async function createInvites(invites: {
-  email: string
-  full_name: string
-  phone?: string | null
-  rep_tier?: string
-  welcome_note?: string | null
-}[]): Promise<void> {
-  await api.post('/invites', { invites })
-}
+export type MemberRole = 'agent' | 'manager'
 
 export interface AgencyData {
   id: string
   name: string
+  /** Shown only for a multi-user agency. */
   join_code: string | null
   state: string | null
+  market: string | null
   rep_count_range: string | null
   website: string | null
   created_by: string | null
+  type: 'single' | 'multi'
+  status: 'pending' | 'active' | 'revoked'
   created_at: string
 }
 
@@ -35,40 +21,64 @@ export async function getMyAgency(): Promise<AgencyData> {
   return api.get('/agencies/me')
 }
 
-export async function getAgencyByCode(code: string): Promise<{ id: string; name: string }> {
-  return api.get(`/agencies/by-code/${code.toUpperCase()}`)
-}
-
-export async function joinByCode(
-  code: string,
-  payload: { name: string; email: string; password: string },
-): Promise<{ access_token: string; refresh_token?: string; user: { id: string; email: string; name: string; initials: string; role: string } }> {
-  return api.post(`/agencies/by-code/${code.toUpperCase()}/join`, payload)
+export async function updateMyAgency(payload: { name?: string; market?: string; type?: 'single' | 'multi' }): Promise<AgencyData> {
+  return api.patch('/agencies/me', payload)
 }
 
 export interface InviteData {
   id: string
-  agency_id: string
-  agency_name: string
   email: string
-  full_name: string
-  phone: string | null
-  rep_tier: string
-  welcome_note: string | null
-  status: string
+  role: MemberRole
+  state: 'pending' | 'expired' | 'accepted' | 'revoked'
+  /** The link to share — no email is sent yet. */
+  path: string
   expires_at: string | null
   created_at: string
 }
 
-export async function getInvite(inviteId: string): Promise<InviteData> {
-  return api.get(`/invites/${inviteId}`)
+export async function createInvites(invites: { email: string; role: MemberRole }[]): Promise<InviteData[]> {
+  return api.post('/invites', { invites })
 }
 
-export async function acceptInvite(
-  inviteId: string,
-  payload: { password: string; name?: string },
-): Promise<{ access_token: string; refresh_token?: string; user: { id: string; email: string; name: string; initials: string; role: string } }> {
-  return api.post(`/invites/${inviteId}/accept`, payload)
+export async function listInvites(): Promise<InviteData[]> {
+  return api.get('/invites')
+}
+
+export async function resendInvite(id: string): Promise<InviteData> {
+  return api.post(`/invites/${id}/resend`, {})
+}
+
+export async function revokeInvite(id: string): Promise<InviteData> {
+  return api.post(`/invites/${id}/revoke`, {})
+}
+
+export interface RosterMember {
+  id: string
+  name: string
+  email: string
+  initials: string
+  role: string
+  is_owner: boolean
+  last_seen_at: string | null
+}
+
+export interface Roster {
+  agency: AgencyData
+  members: RosterMember[]
+  pending: InviteData[]
+}
+
+export async function getRoster(): Promise<Roster> {
+  return api.get('/agencies/me/roster')
+}
+
+export async function changeMemberRole(userId: string, role: MemberRole): Promise<{ id: string; role: MemberRole }> {
+  return api.put(`/agencies/me/members/${userId}/role`, { role })
+}
+
+/** "I also work a book" — a multi-user agency's manager. */
+export async function setRepProfile(rep: boolean): Promise<{ has_rep_profile: boolean }> {
+  return api.patch('/me/profiles', { rep })
 }
 
 export interface AgencyMembers {

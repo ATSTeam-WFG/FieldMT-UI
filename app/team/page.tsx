@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Download, UserPlus, ChevronRight, Radio, FileBarChart2, Search, SlidersHorizontal, Copy, Check } from 'lucide-react'
+import { Download, UserPlus, ChevronRight, Radio, FileBarChart2, Search, SlidersHorizontal } from 'lucide-react'
 import { AppShell } from '@/components/app/AppShell'
 import { SkeletonRows } from '@/components/app/SkeletonRows'
 import { useInviteAgent } from '@/lib/context/InviteAgentContext'
 import { useTeamBroadcast } from '@/lib/context/TeamBroadcastContext'
 import { useMyTeam } from '@/lib/hooks/useMyTeam'
 import { useMyAgency } from '@/lib/hooks/useMyAgency'
+import { AddFirstRep, MakeManagerButton, TeamPeople } from '@/components/app/TeamPeople'
+import { CodeField } from '@/components/app/CodeField'
 import type { TeamAgentEntry } from '@/lib/api/teams'
 
 type EmploymentStatus = 'active' | 'on-leave' | 'inactive'
@@ -78,6 +80,15 @@ export default function TeamRosterPage() {
   const MOBILE_PREVIEW = 4
   const mobileAgents = showAll ? filteredAgents : filteredAgents.slice(0, MOBILE_PREVIEW)
 
+  // G3 — a single-user agency's owner sees the promise, not an empty team.
+  if (agency?.type === 'single') {
+    return (
+      <AppShell activeItem="Team">
+        <AddFirstRep onAdd={openInviteAgent} />
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell activeItem="Team">
       <div className="mx-auto max-w-6xl" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -142,41 +153,19 @@ export default function TeamRosterPage() {
 
         {/* ── Agency join code banner ── */}
         {agency?.join_code && (
-          <div
-            className="flex items-center justify-between rounded-[8px]"
-            style={{
-              padding: '10px 14px',
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            <div className="flex flex-col" style={{ gap: 2 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--muted)', textTransform: 'uppercase' }}>
-                Agency Code
-              </span>
-              <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.12em', color: 'var(--foreground)' }}>
-                {agency.join_code}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                Share with reps so they can join your agency
-              </span>
+          <div className="flex flex-col rounded-[8px]" style={{ gap: 8, padding: '12px 14px', border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--muted)', textTransform: 'uppercase' }}>
+              Agency code
+            </span>
+            <div style={{ maxWidth: 360 }}>
+              <CodeField code={agency.join_code} size="lg" />
             </div>
-            <button
-              onClick={handleCopyCode}
-              className="flex items-center rounded-[8px] transition-all hover:opacity-80"
-              style={{
-                height: 34, padding: '0 12px', gap: 6, fontSize: 13, fontWeight: 500,
-                backgroundColor: codeCopied ? 'var(--surface)' : '#c4a574',
-                color: codeCopied ? 'var(--muted)' : '#000000',
-                border: codeCopied ? '1px solid var(--border)' : 'none',
-                cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              {codeCopied ? <Check size={13} /> : <Copy size={13} />}
-              {codeCopied ? 'Copied' : 'Copy'}
-            </button>
+            <span style={{ fontSize: 13, color: 'var(--body)' }}>Anyone with this code can join as a rep.</span>
           </div>
         )}
+
+        {/* ── People and invitations still out (G1) ── */}
+        <TeamPeople />
 
         {/* ── Mobile search bar ── */}
         <div
@@ -363,9 +352,12 @@ export default function TeamRosterPage() {
                       {formatLastActive(agent.lastActivity)}
                     </td>
                     <td style={{ padding: '0 16px' }}>
-                      <Link href={`/agent/${agent.id}`} style={{ fontSize: 13, fontWeight: 500, color: '#c4a574', textDecoration: 'none' }}>
-                        View
-                      </Link>
+                      <span className="flex items-center" style={{ gap: 12 }}>
+                        <Link href={`/agent/${agent.id}`} style={{ fontSize: 13, fontWeight: 500, color: '#c4a574', textDecoration: 'none' }}>
+                          View
+                        </Link>
+                        <MakeManagerButton userId={agent.id} name={agent.name} />
+                      </span>
                     </td>
                   </tr>
                 )

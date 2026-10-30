@@ -14,6 +14,7 @@ function getTokenExp(token: string): number | null {
 
 export type Role = 'rep' | 'manager' | 'executive'
 export type UserType = 'rep' | 'manager'
+export type AgencyType = 'single' | 'multi'
 
 export interface Persona {
   name: string
@@ -30,6 +31,9 @@ interface RoleContextValue {
   setRole: (role: Role) => void
   userType: UserType
   canSwitch: boolean
+  /** Navigation follows the agency: a single-user agency shows rep navigation only. */
+  agencyType: AgencyType
+  agencyName: string | null
   loaded: boolean
   isAuthenticated: boolean
 }
@@ -40,6 +44,8 @@ const RoleContext = createContext<RoleContextValue>({
   setRole: () => {},
   userType: 'rep',
   canSwitch: false,
+  agencyType: 'single',
+  agencyName: null,
   loaded: false,
   isAuthenticated: false,
 })
@@ -49,7 +55,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role>('rep')
   const [persona, setPersona] = useState<Persona>(emptyPersona)
   const [loaded, setLoaded] = useState(false)
-  const [alsoRep, setAlsoRep] = useState(false)
+  const [canSwitch, setCanSwitch] = useState(false)
+  const [agencyType, setAgencyType] = useState<AgencyType>('single')
+  const [agencyName, setAgencyName] = useState<string | null>(null)
 
   useEffect(() => {
     const token = getToken()
@@ -59,15 +67,22 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
     getMe()
       .then(user => {
-        const r: Role = user.role === 'manager' ? 'manager' : 'rep'
+        const multi = user.agency?.type === 'multi'
+        // A manager in a single-user agency holds a manager's permissions but works their
+        // own book: rep navigation until the agency grows.
+        const r: Role = user.role === 'manager' && multi ? 'manager' : 'rep'
         // Errors should say *who* hit them. Email is deliberately omitted:
         // alpha runs on demo accounts so it carries no triage value, and it
         // would be real customer PII once external agencies sign up.
         Sentry.setUser({ id: user.id, username: user.name })
         Sentry.setTag('user.role', r)
         setRole(r)
-        setUserType(r as UserType)
-        setAlsoRep(user.also_rep ?? false)
+        // Permission follows the role, navigation follows the agency: a single-user owner
+        // is a manager (userType) on the rep view (role).
+        setUserType(user.role === 'manager' ? 'manager' : 'rep')
+        setCanSwitch(user.can_switch ?? false)
+        setAgencyType(multi ? 'multi' : 'single')
+        setAgencyName(user.agency?.name ?? null)
         setPersona({
           name: user.name,
           initials: user.initials,
@@ -101,12 +116,10 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer)
   }, [loaded])
 
-  // Only managers who also act as reps can switch views
-  const canSwitch = userType === 'manager' && alsoRep
   const isAuthenticated = loaded && persona.name !== ''
 
   return (
-    <RoleContext.Provider value={{ role, persona, setRole, userType, canSwitch, loaded, isAuthenticated }}>
+    <RoleContext.Provider value={{ role, persona, setRole, userType, canSwitch, agencyType, agencyName, loaded, isAuthenticated }}>
       {children}
     </RoleContext.Provider>
   )
