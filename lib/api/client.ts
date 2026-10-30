@@ -4,7 +4,8 @@ import { PRESENCE_COOKIE, TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/lib/storage-key
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  /** Machine-readable refusal from the access layer — `no_account`, `setup_required`, … */
+  constructor(public status: number, message: string, public code?: string) {
     super(message)
     this.name = 'ApiError'
   }
@@ -38,6 +39,21 @@ export function clearToken(): void {
   // Without this a shared machine attributes the next person's errors to
   // whoever logged in before them.
   Sentry.setUser(null)
+}
+
+// A product route refused by the access layer: signed in, but not (or not yet) in the product.
+const REFUSAL_ROUTES: Record<string, string> = {
+  no_account: '/no-access',
+  inactive: '/no-access?reason=inactive',
+  agency_revoked: '/no-access?reason=agency_revoked',
+  setup_required: '/welcome',
+}
+
+// Pages that work before (or without) an account — a refusal there is expected, not a redirect.
+const OUTSIDE_PRODUCT = ['/login', '/signup', '/join', '/activate/', '/accept/', '/no-access', '/welcome', '/onboarding']
+
+function outsideProduct(pathname: string): boolean {
+  return pathname === '/' || OUTSIDE_PRODUCT.some((p) => pathname === p || pathname.startsWith(p.endsWith('/') ? p : `${p}/`))
 }
 
 // Deduplication — one refresh flight at a time across concurrent 401s
@@ -103,11 +119,21 @@ async function request<T>(
 
   if (!res.ok) {
     let detail = `HTTP ${res.status}`
+    let code: string | undefined
     try {
       const body = await res.json()
-      detail = body.detail ?? detail
+      if (body.detail && typeof body.detail === 'object' && !Array.isArray(body.detail)) {
+        detail = body.detail.message ?? detail
+        code = body.detail.code
+      } else if (typeof body.detail === 'string') {
+        detail = body.detail
+      }
     } catch {}
-    throw new ApiError(res.status, detail)
+    if (res.status === 403 && code && typeof window !== 'undefined' && !outsideProduct(window.location.pathname)) {
+      const to = REFUSAL_ROUTES[code]
+      if (to) window.location.href = to
+    }
+    throw new ApiError(res.status, detail, code)
   }
 
   if (res.status === 204) return undefined as T

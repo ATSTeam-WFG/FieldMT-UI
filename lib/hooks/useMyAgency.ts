@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getAgencyMembers, getMyAgency, type AgencyData } from '@/lib/api/agencies'
+import { getAgencyMembers, getMyAgency, getRoster, type AgencyData } from '@/lib/api/agencies'
 import { ApiError } from '@/lib/api/client'
 import { hasToken } from '@/lib/api/client'
 
@@ -16,6 +16,15 @@ export function useMyAgency() {
     },
     enabled: hasToken(),
     staleTime: 300_000,
+  })
+}
+
+export function useRoster(enabled = true) {
+  return useQuery({
+    queryKey: ['agency-roster'],
+    queryFn: getRoster,
+    enabled: enabled && hasToken(),
+    staleTime: 60_000,
   })
 }
 

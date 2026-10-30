@@ -2,8 +2,8 @@ import { test, expect, Page } from '@playwright/test'
 
 /**
  * First-run onboarding checklist — the post-auth setup guide on both dashboards.
- * Not to be confused with tests/onboarding.spec.ts, which covers the pre-auth
- * signup wizard at /onboarding.
+ * Not to be confused with tests/access.spec.ts, which covers the pre-auth
+ * invitation, sign-in and agency-setup screens.
  *
  * Fully mocked. The states that matter most here — a genuine 0-of-5, and a
  * manager step that is waiting on a rep — are unreachable with the seeded
@@ -61,9 +61,11 @@ const MANAGER_PARTIAL = checklist('manager', [
   { key: 'view_performance', done: false },
 ])
 
+// Navigation follows the agency: a manager sees the manager view only in a multi-user agency.
+const AGENCY = { id: 'a1', name: 'Test Agency', market: null, type: 'multi', status: 'active', setup_step: null }
 const ME = {
-  agent: { id: 'u-rep', email: 'rep@test.com', name: 'Test Rep', initials: 'TR', role: 'agent', status: 'active', agency_id: 'a1', also_rep: false },
-  manager: { id: 'u-mgr', email: 'mgr@test.com', name: 'Test Manager', initials: 'TM', role: 'manager', status: 'active', agency_id: 'a1', also_rep: false },
+  agent: { id: 'u-rep', email: 'rep@test.com', name: 'Test Rep', initials: 'TR', role: 'agent', status: 'active', agency_id: 'a1', agency: { ...AGENCY, is_owner: false }, has_rep_profile: true, has_manager_profile: false, also_rep: false },
+  manager: { id: 'u-mgr', email: 'mgr@test.com', name: 'Test Manager', initials: 'TM', role: 'manager', status: 'active', agency_id: 'a1', agency: { ...AGENCY, is_owner: true }, has_rep_profile: false, has_manager_profile: true, also_rep: false },
 }
 
 /**

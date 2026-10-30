@@ -6,3 +6,6 @@
 export const PRESENCE_COOKIE = 'app_has_token'
 export const TOKEN_KEY = 'app_token'
 export const REFRESH_TOKEN_KEY = 'app_refresh_token'
+// The invitation or join code a person is acting on, held across the identity
+// hand-off — the stand-in for the identity provider's `state` round-trip.
+export const ACCESS_INTENT_KEY = 'app_access_intent'

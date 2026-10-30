@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { House, Activity, Users, BookUser, CalendarCheck, Ellipsis, LayoutDashboard, FileText } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
@@ -29,6 +29,8 @@ import { useInviteAgent } from '@/lib/context/InviteAgentContext'
 import { useTeamBroadcast } from '@/lib/context/TeamBroadcastContext'
 import { useRole } from '@/lib/context/RoleContext'
 import { trackEvent } from '@/lib/api/events'
+import { hasToken } from '@/lib/api/client'
+import { useSuccessToast } from './SuccessToast'
 
 interface AppShellProps {
   activeItem?: string
@@ -60,7 +62,9 @@ const managerMobileTabItems: TabItem[] = [
 export function AppShell({ activeItem, children }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { role, loaded, isAuthenticated } = useRole()
+  const { role, loaded, isAuthenticated, agencyName } = useRole()
+  const showToast = useSuccessToast()
+  const setupToasted = useRef(false)
   const { isOpen: logOpen } = useActivityLog()
   const { isOpen: addOpen } = useAddContact()
   const { isOpen: contractOpen } = useContract()
@@ -72,10 +76,23 @@ export function AppShell({ activeItem, children }: AppShellProps) {
   const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
-    if (loaded && !isAuthenticated) {
+    // With a token, a failed /auth/me was already routed by the API client — to sign-in
+    // (401), or to /no-access or /welcome (403) — so don't race it here.
+    if (loaded && !isAuthenticated && !hasToken()) {
       router.replace('/login')
     }
   }, [loaded, isAuthenticated, router])
+
+  // Arriving from agency setup (/welcome adds ?setup=done): one line, then drop the param.
+  useEffect(() => {
+    if (!loaded || !isAuthenticated || setupToasted.current) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('setup') !== 'done') return
+    setupToasted.current = true
+    showToast(`${agencyName ?? 'Your agency'} is set up`)
+    params.delete('setup')
+    router.replace(params.size ? `${pathname}?${params}` : pathname)
+  }, [loaded, isAuthenticated, agencyName, pathname, router, showToast])
 
   // Presence telemetry — record a page_view on navigation (authed pages only).
   useEffect(() => {

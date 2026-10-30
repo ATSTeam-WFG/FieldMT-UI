@@ -1,15 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { completeOnboarding, getChecklist, OnboardingChecklist } from '@/lib/api/onboarding'
 import { hasToken } from '@/lib/api/client'
+import { useRole } from '@/lib/context/RoleContext'
 
 export const ONBOARDING_QUERY_KEY = ['onboarding-checklist']
 
 export function useOnboarding() {
   const queryClient = useQueryClient()
+  // A multi-user agency's manager holds two checklists — one per view — each clearing on its own.
+  const { role } = useRole()
+  const view = role === 'manager' ? 'manager' : 'agent'
+  const queryKey = [...ONBOARDING_QUERY_KEY, view]
 
   const query = useQuery({
-    queryKey: ONBOARDING_QUERY_KEY,
-    queryFn: getChecklist,
+    queryKey,
+    queryFn: () => getChecklist(view),
     enabled: hasToken(),
     // Three steps are satisfied by a page view, not a mutation, so while the
     // checklist is live it has to refetch on every AppShell mount — otherwise
@@ -22,8 +27,8 @@ export function useOnboarding() {
   })
 
   const completeMutation = useMutation({
-    mutationFn: completeOnboarding,
-    onSuccess: (data: OnboardingChecklist) => queryClient.setQueryData(ONBOARDING_QUERY_KEY, data),
+    mutationFn: () => completeOnboarding(view),
+    onSuccess: (data: OnboardingChecklist) => queryClient.setQueryData(queryKey, data),
   })
 
   const checklist = query.data

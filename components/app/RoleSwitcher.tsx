@@ -18,8 +18,8 @@ export function RoleSwitcher() {
 
   const switchTarget =
     role === 'manager'
-      ? { role: 'rep' as const, name: 'Sarah Chen', label: 'Senior Sales Rep', action: 'Switch to Rep View' }
-      : { role: 'manager' as const, name: 'Jane Doe', label: 'Regional Sales Manager', action: 'Switch to Manager View' }
+      ? { role: 'rep' as const, label: 'Your own book', action: 'Switch to Rep View' }
+      : { role: 'manager' as const, label: 'Your team', action: 'Switch to Manager View' }
 
   async function handleLogout() {
     await logout()
@@ -66,7 +66,7 @@ export function RoleSwitcher() {
                   {switchTarget.action}
                 </span>
                 <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {switchTarget.name} · {switchTarget.label}
+                  {persona.name} · {switchTarget.label}
                 </span>
               </div>
             </DropdownMenuItem>

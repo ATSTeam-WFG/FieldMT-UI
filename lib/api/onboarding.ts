@@ -26,8 +26,8 @@ export interface OnboardingChecklist {
   dismissed: boolean
 }
 
-export function getChecklist(): Promise<OnboardingChecklist> {
-  return api.get<OnboardingChecklist>('/onboarding/checklist')
+export function getChecklist(view: 'agent' | 'manager'): Promise<OnboardingChecklist> {
+  return api.get<OnboardingChecklist>(`/onboarding/checklist?view=${view}`)
 }
 
 /**
@@ -35,6 +35,6 @@ export function getChecklist(): Promise<OnboardingChecklist> {
  * completion and no-ops if it has already run, so this is safe to call more
  * than once and cannot be used to fake the notification.
  */
-export function completeOnboarding(): Promise<OnboardingChecklist> {
-  return api.post<OnboardingChecklist>('/onboarding/complete', {})
+export function completeOnboarding(view: 'agent' | 'manager'): Promise<OnboardingChecklist> {
+  return api.post<OnboardingChecklist>(`/onboarding/complete?view=${view}`, {})
 }

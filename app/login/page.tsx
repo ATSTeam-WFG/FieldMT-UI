@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -8,28 +8,7 @@ import { Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { BRAND } from '@/lib/brand'
 import { login } from '@/lib/api/auth'
-
-function GoogleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-    </svg>
-  )
-}
-
-function MicrosoftIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <rect x="1" y="1" width="10.5" height="10.5" fill="#f25022"/>
-      <rect x="12.5" y="1" width="10.5" height="10.5" fill="#7fba00"/>
-      <rect x="1" y="12.5" width="10.5" height="10.5" fill="#00a4ef"/>
-      <rect x="12.5" y="12.5" width="10.5" height="10.5" fill="#ffb900"/>
-    </svg>
-  )
-}
+import { continueAfterIdentity, readIntent } from '@/lib/access'
 
 function LoginPage() {
   const router = useRouter()
@@ -41,18 +20,20 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const sessionExpired = searchParams.get('expired') === '1'
+  // Arrived from an invitation or agency code: it is claimed once sign-in proves who you are.
+  const [holdsIntent, setHoldsIntent] = useState(false)
+  useEffect(() => setHoldsIntent(readIntent() !== null), [])
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      const res = await login(email, password)
+      await login(email, password)
       // Full navigation so RoleContext remounts and re-fetches /auth/me with the new token
-      window.location.href = res.user.role === 'manager' ? '/manager' : '/dashboard'
+      window.location.href = await continueAfterIdentity()
     } catch (err: any) {
       setError(err.message ?? 'Sign in failed')
-    } finally {
       setLoading(false)
     }
   }
@@ -134,13 +115,6 @@ function LoginPage() {
               {BRAND.category}
             </span>
           </div>
-          <Link
-            href="/onboarding"
-            style={{ fontSize: 12, color: 'var(--gold)', whiteSpace: 'nowrap', marginTop: 2 }}
-            className="hover:underline"
-          >
-            New? Start here →
-          </Link>
         </div>
 
         <div style={{ height: 32 }} />
@@ -154,7 +128,7 @@ function LoginPage() {
             Welcome back
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>
-            Sign in to your account
+            {holdsIntent ? 'Sign in to accept your invitation' : 'Sign in to your account'}
           </p>
         </div>
 
@@ -268,60 +242,49 @@ function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
 
+          {/* Google and Microsoft sign-in arrive with B2C, on its hosted page. */}
+
           <div style={{ height: 20 }} />
 
-          {/* Divider */}
+          {/* Divider — between signing in and getting in for the first time */}
           <div className="flex items-center" style={{ gap: 12 }}>
             <div className="flex-1" style={{ height: 1, backgroundColor: 'var(--border)' }} />
             <span style={{ fontSize: 12, color: 'var(--muted)' }}>or</span>
             <div className="flex-1" style={{ height: 1, backgroundColor: 'var(--border)' }} />
           </div>
 
-          <div style={{ height: 20 }} />
+          <div style={{ height: 16 }} />
 
-          {/* SSO buttons */}
-          <Link
-            href="/coming-soon"
-            className="flex items-center justify-center rounded-[8px] transition-opacity hover:opacity-80"
-            style={{
-              height: 42,
-              gap: 8,
-              border: '1px solid var(--border)',
-              fontSize: 14,
-              color: 'var(--body)',
-              backgroundColor: 'transparent',
-              marginBottom: 10,
-            }}
-          >
-            <GoogleIcon />
-            Continue with Google
-          </Link>
-
-          <Link
-            href="/coming-soon"
-            className="flex items-center justify-center rounded-[8px] transition-opacity hover:opacity-80"
-            style={{
-              height: 42,
-              gap: 8,
-              border: '1px solid var(--border)',
-              fontSize: 14,
-              color: 'var(--body)',
-              backgroundColor: 'transparent',
-            }}
-          >
-            <MicrosoftIcon />
-            Continue with Microsoft
-          </Link>
-
-          <div style={{ height: 24 }} />
-
-          {/* Footer note */}
-          <p className="text-center" style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" style={{ color: 'var(--gold)' }} className="hover:underline">
-              Sign up
-            </Link>
-          </p>
+          {/* The one way in for someone without an account yet */}
+          {holdsIntent ? (
+            <p className="text-center" style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+              New here?{' '}
+              <Link href="/signup" style={{ color: 'var(--gold)' }} className="hover:underline">
+                Create your account
+              </Link>
+            </p>
+          ) : (
+            <>
+              <p className="text-center" style={{ fontSize: 13, color: 'var(--body)' }}>
+                Have a code? Continue below
+              </p>
+              <div style={{ height: 10 }} />
+              <Link
+                href="/join"
+                className="flex items-center justify-center rounded-[8px] transition-opacity hover:opacity-80"
+                style={{
+                  height: 42,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'var(--foreground)',
+                  border: '1px solid var(--border-strong)',
+                  backgroundColor: 'transparent',
+                }}
+              >
+                Join with code
+              </Link>
+            </>
+          )}
         </form>
       </div>
 

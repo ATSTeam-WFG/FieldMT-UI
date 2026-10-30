@@ -598,7 +598,7 @@ export default function SplashPage() {
           </div>
           <div className="signin-actions">
             <Link href="/login" className="btn btn-secondary">Sign in</Link>
-            <Link href="/signup" className="signin-alt">Have a code? Create your account →</Link>
+            <Link href="/join" className="signin-alt">Have an agency code? Join your agency →</Link>
           </div>
         </div>
       </section>
